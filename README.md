@@ -1,7 +1,7 @@
 # 🌍 LPMS Energy Model – Mosel
 
 [![Language](https://img.shields.io/badge/language-Mosel-blue.svg)](https://www.fico.com/en/products/fico-xpress-optimization)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 
 
 ---
