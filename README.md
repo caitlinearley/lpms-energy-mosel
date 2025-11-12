@@ -18,7 +18,7 @@ Includes:
 ---
 
 ## ⚙️ Key Features
-- Linear optimisation via Mosel using the **dual simplex method**.  
+- The model is formulated as a linear optimisation problem and solved using Xpress Optimizer’s LP solver (typically via the simplex method)**.  
 - Evaluates multiple energy sources: gas, coal, nuclear, wind, hydro, solar, and interconnects.  
 - Tests emissions reductions (CO₂ and SO₂) and their impact on profitability.  
 - Models seasonal variation (e.g. autumn wind multiplier).  
