@@ -28,6 +28,9 @@ declarations
   SolarOutputVar: array(Times) of mpvar
   Reserve: array(Times) of mpvar
   Pumping: array(Times) of mpvar
+  UpdatedMaxOutput: array(Source, Times) of mpvar
+  UpdatedSolarMultiple: array(Times) of mpvar
+  NewMaxHydroReserve: mpvar
 
 
 end-declarations
@@ -38,16 +41,16 @@ initializations from "EPower.dat"
 	Emissions EmissionsLimit ElectricityPrice MaxHydroReserve NaturalHydroInflow HydroPowerEfficiencyFrac AutumnMultiplier
 end-initializations
 
-!Since wind energy is variable, we assume that, on average, the maximum wind output is 6000MW
-!We then add a constraint to make sure power output does not exceed maximum power output for any source
+!Since wind energy is variable, we assume that, on average, the maximum wind output is 6000MW  
+!We then add a constraint to make sure power output does not exceed maximum power output for any source  
 
 WindAverage := MaxOutput("Wind")*0.5
 
 forall(s in Source, t in Times) do
-  MaxPowerOutputPerPeriod(s, t) := MaxOutput(s)
+  MaxPowerOutputPerPeriod(s, t) := MaxOutput(s) 
   MaxPowerOutputPerPeriod("Wind", t) := WindAverage
   OutputCS(s,t) := PowerOutput(s,t) <= MaxPowerOutputPerPeriod(s, t)
-
+  
   !Defining the running cost for each source every period
   RunningCostVar(s, t) = RunningCost(s) * PowerOutput(s, t)
 end-do
@@ -56,7 +59,7 @@ end-do
 forall(t in Times) DemandCS(t):=sum(s in Source) PowerOutput(s,t) =( Demand(t) + Pumping(t)/PeriodLength(t) )
 
 
-!Constraining the energy output from hydro every period to not exceed the potential energy held in the reserve
+!Constraining the energy output from hydro every period to not exceed the potential energy held in the reserve 
 !Setting the reserve amount at the start of every period, taking into account the reserve at the beginning of the previous period, natural hydro inflow,
 !and the amount pumped into the reserve (modified by an efficiency factor)
 numtimes := getsize(Times)
@@ -87,7 +90,6 @@ end-do
 
 !Setting the emission limits
 forall (e in Emiss) do
-  !TotalEmissions(e) := sum(s in Source, t in Times) (EnergyOutput(s,t) * Emissions(e, s))
   TotalEmissions(e) := sum(s in Source, t in Times) (PowerOutput(s,t) * PeriodLength(t)* Emissions(e, s))
   MaxTotalEmissionsCS(e) := TotalEmissions(e) <= EmissionsLimit(e)
   MinTotalEmissionsCS(e) := TotalEmissions(e) >= 0
@@ -102,7 +104,6 @@ forall(s in Source, t in Times) do
   else
     IncreasedPowerOutput(s,t) >= (PowerOutput(s, t) - PowerOutput(s,t-1))
   end-if
-  !IncreasedPowerOutput(s,t) := IncreasedEnergyOutput(s,t)/PeriodLength(t)
   IncreaseCostVar(s, t) = (IncreaseCost(s) ) * IncreasedPowerOutput(s,t)
 end-do
 
@@ -123,15 +124,12 @@ TotalCost := sum(s in Source, t in Times) (RunningCostVar(s, t) *PeriodLength(t)
 TotalRevenue := sum(t in Times) (PowerPerTime(t) *PeriodLength(t)-Pumping(t)) * ElectricityPrice
 TotalProfit:= TotalRevenue - TotalCost
 maximise(TotalProfit)
-writeln("Total Profit = ", getobjval)
+writeln("Total Profit = ", getobjval) 
 writeln("Total Revenue = ",getsol(TotalRevenue))
 writeln("Total Costs = ",getsol(TotalCost))
 forall(e in Emiss)writeln(strfmt(e,7), strfmt(getsol(TotalEmissions(e)),10))
 
 report
-
-
-forall(s in Source, t in Times) 
 
 fopen("EPower.csv", F_OUTPUT)
 writeln("Source, 1, 2, 3, 4, 5, 6, Total")
@@ -156,7 +154,7 @@ writeln
 
 Mu := 1.
 PercentageChange := 0
-repeat
+repeat 
 
 TotalEmissionsCS("CO2") := TotalEmissions("CO2") <= Mu*EmissionsLimit("CO2")
 
@@ -174,13 +172,13 @@ PercentageChange +=  5
 until Mu < 0.5
 
 fclose(F_OUTPUT)
+writeln("Total Costs = ",getsol(TotalCost))
 
 
 
 
 !Calculating profit for stage 2
 writeln;writeln("With Solar and assuming an Autumn Multiplier on Wind Power Output")
-
 
 !Integrating a specific autumn multiplier on maximum wind output rather than taking a generic average
 WithAutumn:= TRUE
@@ -194,20 +192,17 @@ WithSolar := TRUE
 
 forall(t in Times) do
   SolarPerTimeCS(t) := SolarOutputVar(t) <= SolarOutput("Autumn",t)
-  !DemandCS(t) := sum(s in Source)( PowerOutput(s,t) + SolarOutputVar(t) )= (Demand(t) +Pumping(t)/PeriodLength(t) )
   PowerPerTime(t):= sum(s in Source) PowerOutput(s,t)
   DemandCS(t) := (PowerPerTime(t) + SolarOutputVar(t) ) = (Demand(t) +Pumping(t)/PeriodLength(t) )
 end-do
 
 
 TotalCost := sum(s in Source, t in Times) (RunningCostVar(s, t)*PeriodLength(t) + IncreaseCostVar(s, t))
-!TotalRevenue := sum(s in Source,t in Times) ((PowerOutput(s,t) + SolarOutputVar(t) )*PeriodLength(t)-Pumping(t) ) * ElectricityPrice
-!TotalRevenue:= sum(s in Source) RevenuePerSource(s)
 TotalRevenue := sum(t in Times) ((PowerPerTime(t)+ SolarOutputVar(t) )*PeriodLength(t)-Pumping(t) ) * ElectricityPrice
 TotalProfit:= TotalRevenue - TotalCost
 maximise(TotalProfit)
 
-writeln("Total Profit = ", getobjval)
+writeln("Total Profit = ", getobjval) 
 writeln("Total Revenue = ",getsol(TotalRevenue))
 writeln("Total Costs = ",getsol(TotalCost))
 forall(e in Emiss)writeln(strfmt(e,7), strfmt(getsol(TotalEmissions(e)),10))
@@ -249,7 +244,31 @@ if RemoveGas then
   end-do
 end-if
 maximise(TotalProfit)
+writeln("Total Profit = ", getobjval) 
+writeln("Total Revenue = ",getsol(TotalRevenue))
+writeln("Total Costs = ",getsol(TotalCost))
+forall(e in Emiss)writeln(strfmt(e,7), strfmt(getsol(TotalEmissions(e)),10))
+
 report
+fopen("EPower_3.csv", F_OUTPUT)
+writeln("Source, 1, 2, 3, 4, 5, 6, Total")
+forall(s in Source) do
+  write(s, ", ")
+  forall(t in Times) write(getsol(PowerOutput(s, t)), ", ")
+  write(sum(t in Times)getsol(PowerOutput(s, t)))
+  writeln
+end-do
+write("Solar",",")
+forall(t in Times) write(getsol(SolarOutputVar(t)), ", ")
+write(sum(t in Times)getsol(SolarOutputVar(t)))
+writeln
+write("Total, ")
+forall(t in Times) do
+  write(sum(s in Source) getsol(PowerOutput(s,t))+(getsol(SolarOutputVar(t))), ", ")
+end-do
+write(getsol(sum(s in Source, t in Times)((PowerOutput(s,t)))+sum(t in Times)(SolarOutputVar(t))))
+fclose(F_OUTPUT)
+
 forall(s in Source, t in Times) GasCS(s, t) := PowerOutput("Gas", t) >= 0
 
 writeln
@@ -266,7 +285,31 @@ if RemoveCoal then
   end-do
 end-if
 maximise(TotalProfit)
+writeln("Total Profit = ", getobjval) 
+writeln("Total Revenue = ",getsol(TotalRevenue))
+writeln("Total Costs = ",getsol(TotalCost))
+forall(e in Emiss)writeln(strfmt(e,7), strfmt(getsol(TotalEmissions(e)),10))
+
 report
+fopen("EPower_4.csv", F_OUTPUT)
+writeln("Source, 1, 2, 3, 4, 5, 6, Total")
+forall(s in Source) do
+  write(s, ", ")
+  forall(t in Times) write(getsol(PowerOutput(s, t)), ", ")
+  write(sum(t in Times)getsol(PowerOutput(s, t)))
+  writeln
+end-do
+write("Solar",",")
+forall(t in Times) write(getsol(SolarOutputVar(t)), ", ")
+write(sum(t in Times)getsol(SolarOutputVar(t)))
+writeln
+write("Total, ")
+forall(t in Times) do
+  write(sum(s in Source) getsol(PowerOutput(s,t))+(getsol(SolarOutputVar(t))), ", ")
+end-do
+write(getsol(sum(s in Source, t in Times)((PowerOutput(s,t)))+sum(t in Times)(SolarOutputVar(t))))
+fclose(F_OUTPUT)
+
 forall(s in Source, t in Times) CoalCS(s, t) := PowerOutput("Coal", t) >= 0
 
 writeln
@@ -283,27 +326,126 @@ if RemoveNuclear then
   end-do
 end-if
 maximise(TotalProfit)
+writeln("Total Profit = ", getobjval) 
+writeln("Total Revenue = ",getsol(TotalRevenue))
+writeln("Total Costs = ",getsol(TotalCost))
+forall(e in Emiss)writeln(strfmt(e,7), strfmt(getsol(TotalEmissions(e)),10))
+
 report
+fopen("EPower_5.csv", F_OUTPUT)
+writeln("Source, 1, 2, 3, 4, 5, 6, Total")
+forall(s in Source) do
+  write(s, ", ")
+  forall(t in Times) write(getsol(PowerOutput(s, t)), ", ")
+  write(sum(t in Times)getsol(PowerOutput(s, t)))
+  writeln
+end-do
+write("Solar",",")
+forall(t in Times) write(getsol(SolarOutputVar(t)), ", ")
+write(sum(t in Times)getsol(SolarOutputVar(t)))
+writeln
+write("Total, ")
+forall(t in Times) do
+  write(sum(s in Source) getsol(PowerOutput(s,t))+(getsol(SolarOutputVar(t))), ", ")
+end-do
+write(getsol(sum(s in Source, t in Times)((PowerOutput(s,t)))+sum(t in Times)(SolarOutputVar(t))))
+fclose(F_OUTPUT)
 forall(s in Source, t in Times) NuclearCS(s, t) := PowerOutput("Nuclear", t) >= 0
 
-
-
 writeln
-! OLD CONSTRAINT CODE FOR REFERENCE
+! The code below examines what the best potential power source investments are to meet demand and minimise total costs
 
-!forall(t in Times) DemandCS(t):=sum(s in Source) PowerOutput(s,t) = (Demand(t) + Pumping(t)/PeriodLength(t) )!
+writeln("Updating Constraints")
+! UpdatedMaxOutput is the new max output constraint, which is restrained to be greater than our current constraints.
+forall(s in Source, t in Times) OutputCS(s,t) := PowerOutput(s,t) <= UpdatedMaxOutput(s, t)
+TotalPowerOutput:= sum(s in Source, t in Times) UpdatedMaxOutput(s, t)
+forall( s in Source, t in Times) MinAllowed(s,t) := MaxOutput(s)
+forall(s in Source, t in Times) MinOutputCS(s,t) := UpdatedMaxOutput(s, t) >= MinAllowed(s,t) 
 
-!forall(t in Times) do
- ! NewSolarPerTimeCS(t) := SolarOutputVar(t) <= 2 * SolarOutput("Autumn", t)
-!end-do
-!writeln("New demand constraint*****************************************************************************")
+MaxHydroReserveCS:= NewMaxHydroReserve >= MaxHydroReserve
 
-!forall(t in Times) NewDemandCS := sum(s in Source) PowerOutput(s,t) = 0.95*(Demand(t) + Pumping(t)/PeriodLength(t) )
+forall(t in Times) do
+  !Solar can only be an updated multiple of the previous figures in autumn, as increasing the number of solar panels will not change the times the sun is up
+  !The solar multiple constraint limits the increase in solar output to threefold - for logistic considerations such as space etc. - we also do not have its running cost  
+  SolarMultipleCS(t):= UpdatedSolarMultiple(t) <= 3
+  UpdatedSolarOutput(t) := SolarOutput("Autumn",t)*UpdatedSolarMultiple(t)
+  SolarPerTimeCS(t) := SolarOutputVar(t) <= UpdatedSolarOutput(t)
+  SolarOutputCS:= UpdatedSolarOutput(t)>= SolarOutput("Autumn",t)
+  
+  !Updating the hydro reserve constraint 
+  MaxReserveCS(t) := Reserve(t) <= NewMaxHydroReserve
+  
+  !Redefining the demand constraint as PowerOutput has been given a different constraint
+  PowerPerTime(t):= sum(s in Source) PowerOutput(s,t)
+  DemandCS(t) := (PowerPerTime(t) + SolarOutputVar(t) ) = (Demand(t) +Pumping(t)/PeriodLength(t) )
+end-do
 
-!maximise(TotalProfit)
 
-!report
+! Re-defining emission constraints
+forall (e in Emiss) do
+  TotalEmissions(e) := sum(s in Source, t in Times) (PowerOutput(s,t) * PeriodLength(t)* Emissions(e, s))
+  MinTotalEmissionsCS(e) := TotalEmissions(e) >= 0
+end-do
+MaxTotalEmissionsCS("Sulphur") := TotalEmissions("Sulphur") <= EmissionsLimit("Sulphur")
+MaxTotalEmissionsCS("CO2") := TotalEmissions("CO2") <= EmissionsLimit("CO2")*0.5
 
+
+TotalCost := sum(s in Source, t in Times) (RunningCostVar(s, t)*PeriodLength(t) + IncreaseCostVar(s, t))
+TotalRevenue := sum(t in Times) ((PowerPerTime(t)+ SolarOutputVar(t) )*PeriodLength(t)-Pumping(t) ) * ElectricityPrice
+TotalProfit:= TotalRevenue- TotalCost
+!CostCS := TotalCost = TotalRevenue
+maximise(TotalProfit)
+
+fopen("EPower_6.csv", F_OUTPUT)
+writeln("Source, 1, 2, 3, 4, 5, 6, Total, Power Increase")
+forall(s in Source) do
+  write(s, ", ")
+  forall(t in Times) write(getsol(PowerOutput(s, t)), ", ")
+  write(sum(t in Times)getsol(PowerOutput(s, t)))
+  writeln
+end-do
+write("Solar",",")
+forall(t in Times) write(getsol(SolarOutputVar(t)), ", ")
+write(sum(t in Times)getsol(SolarOutputVar(t)))
+writeln
+write("Total, ")
+forall(t in Times) do
+  write(sum(s in Source) getsol(PowerOutput(s,t))+(getsol(SolarOutputVar(t))), ", ")
+end-do
+write(getsol(sum(s in Source, t in Times)((PowerOutput(s,t)))+sum(t in Times)(SolarOutputVar(t))))
+fclose(F_OUTPUT)
+
+fopen("EPower_7.csv", F_OUTPUT)
+writeln("Source, 1, 2, 3, 4, 5, 6")
+forall(s in Source) do
+  write(s, ", ")
+  forall(t in Times) write(getsol(UpdatedMaxOutput(s,t)-MinAllowed(s,t)),",")
+  writeln
+end-do
+write("Solar")
+forall(t in Times) write(",",getsol(SolarOutput("Autumn",t)*UpdatedSolarMultiple(t)-SolarOutput("Autumn",t)))
+writeln
+fclose(F_OUTPUT)
+
+writeln("Total Profit = ", getobjval) 
+writeln("Total Revenue = ",getsol(TotalRevenue))
+writeln("Total Costs = ",getsol(TotalCost))
+forall(e in Emiss)writeln(strfmt(e,7), strfmt(getsol(TotalEmissions(e)),10))
+
+writeln( strfmt("Time Period",50))
+write(strfmt("Source",15))
+forall(t in Times) write(strfmt(t,15))
+writeln
+forall(s in Source) do
+  write(strfmt(s,15))
+  forall(t in Times) write(strfmt(getsol(UpdatedMaxOutput(s, t)),15))
+  writeln
+end-do
+write(strfmt("Solar",15))
+forall(t in Times) write(strfmt(getsol(SolarOutputVar(t)),15))
+writeln
+
+report
 
 procedure report
 
@@ -312,58 +454,50 @@ writeln;writeln("Power Output Per Source")
 writeln( strfmt("Time Period",50))
 write(strfmt("Source",15))
 forall(t in Times) write(strfmt(t,15))
-write(strfmt("Total",15))
 writeln
 forall(s in Source) do
   write(strfmt(s,15))
   forall(t in Times) write(strfmt(getsol(PowerOutput(s, t)),15))
-  write(strfmt(sum(t in Times)getsol(PowerOutput(s, t)),15))
   writeln
 end-do
-write(strfmt("Pumping",15))
-forall(t in Times) write(strfmt(getsol(Pumping(t)/PeriodLength(t)),15))
-writeln
+
 if (WithSolar)  then
   write(strfmt("Solar",15))
   forall(t in Times) write(strfmt(getsol(SolarOutputVar(t)),15))
-  write(strfmt(sum(t in Times)getsol(SolarOutputVar(t)),15))
   writeln
 end-if
 write(strfmt("Total",15))
 forall(t in Times) write(strfmt(getsol((sum(s in Source)(PowerOutput(s,t)))+SolarOutputVar(t)),15))
-write(strfmt(getsol(sum(s in Source, t in Times)((PowerOutput(s,t)))+sum(t in Times)(SolarOutputVar(t))),15))
+writeln
+writeln
+write(strfmt("Pumping",15))
+forall(t in Times) write(strfmt(getsol(Pumping(t)/PeriodLength(t)),15))
 writeln
 
 writeln;writeln("Energy Output Per Source")
 writeln( strfmt("Time Period",50))
 write(strfmt("Source",15))
 forall(t in Times) write(strfmt(t,15))
-write(strfmt("Total",15))
 writeln
 forall(s in Source) do
   write(strfmt(s,15))
   forall(t in Times) write(strfmt(getsol(PowerOutput(s, t))*PeriodLength(t),15))
-  write(strfmt(sum(t in Times)getsol(PowerOutput(s, t)*PeriodLength(t)),15))
   writeln
 end-do
-write(strfmt("Pumping",15))
-forall(t in Times) write(strfmt(getsol(Pumping(t)),15))
-writeln
+
 if (WithSolar)  then
   write(strfmt("Solar",15))
   forall(t in Times) write(strfmt(getsol(SolarOutputVar(t)*PeriodLength(t)),15))
-  write(strfmt(sum(t in Times)getsol(SolarOutputVar(t)*PeriodLength(t)),15))
   writeln
 end-if
 write(strfmt("Total",15))
 forall(t in Times) write(strfmt(sum(s in Source)getsol((PowerOutput(s,t))+SolarOutputVar(t))*PeriodLength(t),15))
-write(strfmt(sum(s in Source, t in Times)getsol((PowerOutput(s,t))+SolarOutputVar(t))*PeriodLength(t),15))
+writeln
+writeln
+write(strfmt("Pumping",15))
+forall(t in Times) write(strfmt(getsol(Pumping(t)),15))
 writeln
 end-procedure
 
 
-
 end-model
-
-! Need to add:
-!
