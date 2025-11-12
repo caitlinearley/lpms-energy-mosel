@@ -6,7 +6,7 @@
 
 ---
 
-## 🧭 Overview
+## Overview
 This project presents a **linear programming model built in Mosel** to explore the path toward **energy independence** while managing cost, emissions, and stakeholder constraints.  
 
 Developed as a consulting case study, the project models multiple **generation technologies** and **policy scenarios** to evaluate financial and environmental trade-offs.
@@ -17,7 +17,7 @@ Includes:
 
 ---
 
-## ⚙️ Key Features
+## Key Features
 - The model is formulated as a linear optimisation problem and solved using Xpress Optimizer’s LP solver (typically via the simplex method)**.  
 - Evaluates multiple energy sources: gas, coal, nuclear, wind, hydro, solar, and interconnects.  
 - Tests emissions reductions (CO₂ and SO₂) and their impact on profitability.  
@@ -26,7 +26,7 @@ Includes:
 
 ---
 
-## 🧩 Project Stages
+## Project Stages
 
 ### **Stage 1: Base Case**
 - **Assumptions:**  
@@ -50,7 +50,7 @@ Includes:
 - 50% CO₂ reduction target maintained.  
 - Tested removal of fossil and nuclear sources individually.
 
-💡 *Finding:* Introducing solar improves sustainability, but full fossil-fuel removal without nuclear remains costly (−£7.6 M profit).
+*Finding:* Introducing solar improves sustainability, but full fossil-fuel removal without nuclear remains costly (−£7.6 M profit).
 
 ---
 
@@ -68,7 +68,7 @@ Includes:
 
 ---
 
-## 🧮 Model Logic
+## Model Logic
 The Mosel model formulates a **linear optimisation problem**:
 
 **Objective:**  
@@ -86,7 +86,7 @@ Power generation per source and time period (MW).
 Solver: **Dual Simplex (Mosel built-in solver)**
 
 ---
-## 📊 Results
+## Results
 
 ### **Stage 1 – Base Case**
 - **Assumptions:** No solar; wind fixed at 6 GW; incremental CO₂ reduction up to 50%.  
@@ -100,7 +100,7 @@ Solver: **Dual Simplex (Mosel built-in solver)**
 | CO₂ Change | 0 % | −50 % |
 | Sulphur Change | — | — |
 
-🟢 **Interpretation:**  
+ **Interpretation:**  
 At 50 % emission reduction, the model becomes loss-making. The island cannot maintain profitability with current renewable capacity.
 
 ---
@@ -118,7 +118,7 @@ At 50 % emission reduction, the model becomes loss-making. The island cannot mai
 | No Coal | 100 000 | 0 | −7,625,778 | Moderate loss |
 | No Nuclear | 100 000 | 0 | −13,623,000 | Unprofitable |
 
-🟠 **Interpretation:**  
+ **Interpretation:**  
 Solar improves sustainability but cannot yet offset the loss of fossil or nuclear generation under strict emissions constraints.
 
 ---
@@ -140,6 +140,6 @@ Solar improves sustainability but cannot yet offset the loss of fossil or nuclea
 | SO₂ Emissions (tonnes) | 0 |
 | Primary Sources | Wind, Solar, Hydro |
 
-🟩 **Interpretation:**  
+ **Interpretation:**  
 A clean-energy mix relying on wind, solar, and hydro achieves full emission elimination *and* maintains profitability — a viable, future-proof solution.
 
